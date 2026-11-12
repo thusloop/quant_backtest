@@ -1,0 +1,11 @@
+{
+  "id": "buy_hold",
+  "key": "buy_hold",
+  "name": "一直持有",
+  "description": "首个交易日买入并持有，用作基准。",
+  "base_key": "buy_hold",
+  "color": "#176b87",
+  "builtin": true,
+  "enabled": true,
+  "params": {}
+}

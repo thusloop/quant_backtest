@@ -1,0 +1,16 @@
+{
+  "id": "macd_adx",
+  "key": "close",
+  "name": "MACD+ADX动态仓位",
+  "description": "MACD金叉入场，ADX分级仓位，EMA20/ATR止损与分批止盈。",
+  "base_key": "close",
+  "color": "#d97706",
+  "builtin": true,
+  "enabled": true,
+  "params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "adx_period": 14
+  }
+}

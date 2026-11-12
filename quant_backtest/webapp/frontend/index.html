@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>量化策略工作台</title><link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="topbar"><div><span class="eyebrow">LOCAL QUANT LAB</span><h1>策略回测工作台</h1><p>动态数据、策略对比与收盘操作信号</p></div><div class="topbar-status"><span id="serverDot" class="dot"></span><span id="serverStatus">本地服务</span></div></header>
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="panel"><h2>数据范围</h2><label class="field-label" for="assetSelect">标的</label><select id="assetSelect"></select><button id="refreshBtn" class="primary full">同步并刷新</button><div id="syncStatus" class="status muted">等待加载</div><div id="realtimeStatus" class="status muted">实时行情状态：等待加载</div><div class="add-asset"><label class="field-label" for="newAssetCode">添加股票/指数代码</label><div class="inline-form"><input id="newAssetCode" maxlength="6" inputmode="numeric" placeholder="例如 000001"><button id="addAssetBtn">添加</button></div><input id="newAssetName" class="text-input" maxlength="40" placeholder="名称（可选）"><div id="addAssetStatus" class="status muted"></div></div></section>
+      <section class="panel"><h2>曲线策略</h2><div id="strategyOptions" class="check-list"></div><p class="hint">可同时选择多条曲线，区间统计会同步变化。</p></section>
+      <section class="panel strategy-lab"><h2>策略实验室</h2><label class="field-label" for="strategyTemplate">策略模板</label><select id="strategyTemplate"><option value="macd_adx">MACD+ADX动态仓位</option><option value="macd_cross">MACD金叉/死叉</option><option value="buy_hold">一直持有</option></select><label class="field-label" for="strategyName">策略名称</label><input id="strategyName" class="text-input" placeholder="例如 MACD慢线优化版"><input id="strategyDescription" class="text-input" placeholder="策略说明（可选）"><div class="param-grid"><label>快线<input id="paramFast" type="number" value="12" min="2"></label><label>慢线<input id="paramSlow" type="number" value="26" min="3"></label><label>信号线<input id="paramSignal" type="number" value="9" min="2"></label><label>ADX周期<input id="paramAdx" type="number" value="14" min="5"></label></div><button id="saveStrategyBtn" class="primary full">保存为新策略</button><div id="strategyStatus" class="status muted"></div><div id="libraryList" class="library-list"></div></section>
+      <section class="panel"><h2>快速区间</h2><div class="quick-grid"><button data-window="1">近1月</button><button data-window="3">近3月</button><button data-window="6">近6月</button><button data-window="12">近1年</button><button data-window="36">近3年</button><button data-window="all">全部</button></div></section>
+    </aside>
+    <section class="content">
+      <div id="errorPanel" class="error-panel hidden"></div>
+      <section class="hero panel"><div><span id="assetName" class="eyebrow">--</span><h2 id="heroTitle">加载中</h2><p id="heroMeta" class="muted">--</p></div><div id="actionGrid" class="action-grid"></div></section>
+      <section class="panel chart-panel"><div class="section-head"><div><h2>动态权益曲线</h2><p class="muted">滚轮缩放，拖拽平移；下方显示所选区间收益与最大回撤</p></div><div id="rangeLabel" class="range-label">--</div></div><svg id="chart" viewBox="0 0 1200 470" aria-label="动态权益曲线"></svg><div id="metrics" class="metric-grid"></div></section>
+      <section class="panel"><div class="section-head"><div><h2>交易记录</h2><p class="muted">随左侧策略选择变化</p></div><input id="tradeFilter" class="search" placeholder="筛选方向、原因、日期"></div><div class="table-scroll"><table><thead><tr><th>策略</th><th>交易日</th><th>信号日</th><th>方向</th><th>原因</th><th class="num">价格</th><th class="num">数量</th></tr></thead><tbody id="tradeBody"></tbody></table></div></section>
+      <section class="panel"><div class="section-head"><div><h2>数据说明</h2><p id="dataNote" class="muted">--</p></div></div></section>
+    </section>
+  </main>
+  <script src="/assets/app.js"></script>
+</body></html>

@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "sender": "1793951795@qq.com",
+  "recipient": "1556444893@qq.com",
+  "symbols": [
+    {"code": "881121", "name": "半导体行业指数", "type": "ths_board"}
+  ]
+}

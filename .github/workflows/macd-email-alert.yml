@@ -1,0 +1,135 @@
+name: MACD 14-30 QQ email alert
+
+on:
+  schedule:
+    # GitHub cron uses UTC: 06:30 = 14:30 Asia/Shanghai, Monday-Friday.
+    - cron: '30 6 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry_run: only check; check: send signals; test_email: send a test email'
+        type: choice
+        options:
+          - dry_run
+          - check
+          - test_email
+        default: dry_run
+      codes:
+        description: 'Optional codes for this run, e.g. 881121,884229,600000'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: macd-qq-email-alert
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      MPLBACKEND: Agg
+      ALERT_MODE: ${{ github.event_name == 'schedule' && 'check' || inputs.mode || 'dry_run' }}
+      MACD_ALERT_CODES: ${{ inputs.codes || vars.MACD_ALERT_CODES }}
+      QQ_SMTP_USER: ${{ vars.QQ_SMTP_USER }}
+      QQ_MAIL_TO: ${{ vars.QQ_MAIL_TO }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Locate project
+        id: project
+        shell: bash
+        run: |
+          if [[ -f quant_backtest/macd_email_alert.py ]]; then
+            echo 'directory=quant_backtest' >> "$GITHUB_OUTPUT"
+          elif [[ -f macd_email_alert.py ]]; then
+            echo 'directory=.' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Cannot find macd_email_alert.py' >&2
+            exit 1
+          fi
+
+      - name: Check Beijing execution window
+        id: window
+        env:
+          PROJECT_DIR: ${{ steps.project.outputs.directory }}
+        run: python "$PROJECT_DIR/macd_email_alert.py" --gate --mode "$ALERT_MODE"
+
+      - name: Set up Python
+        if: steps.window.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: '**/requirements-alerts.txt'
+
+      - name: Install notification dependencies
+        if: steps.window.outputs.run == 'true'
+        env:
+          PROJECT_DIR: ${{ steps.project.outputs.directory }}
+        run: python -m pip install -r "$PROJECT_DIR/requirements-alerts.txt"
+
+      # Artifacts survive fresh runners and manual re-runs. Fail closed if restore fails.
+      - name: Restore today's delivery records
+        if: steps.window.outputs.run == 'true' && env.ALERT_MODE != 'test_email'
+        uses: actions/github-script@v7
+        env:
+          STATE_ARTIFACT: ${{ steps.window.outputs.artifact_name }}
+        with:
+          script: |
+            const fs = require('fs');
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: process.env.STATE_ARTIFACT,
+              per_page: 100,
+            });
+            const latest = artifacts.filter(a => !a.expired && a.name === process.env.STATE_ARTIFACT)
+              .sort((a, b) => b.id - a.id)[0];
+            if (latest) {
+              const response = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner, repo: context.repo.repo,
+                artifact_id: latest.id, archive_format: 'zip',
+              });
+              fs.mkdirSync('.alert-state', { recursive: true });
+              fs.writeFileSync('.alert-state/restore.zip', Buffer.from(response.data));
+              core.info('Found delivery records for today.');
+            } else {
+              core.info('No delivery records for today.');
+            }
+
+      - name: Read delivery records
+        if: steps.window.outputs.run == 'true' && env.ALERT_MODE != 'test_email'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          archive = Path('.alert-state/restore.zip')
+          if archive.exists():
+              with ZipFile(archive) as bundle:
+                  Path('.alert-state/state.json').write_bytes(bundle.read('state.json'))
+          PY
+
+      - name: Check signals and send QQ email
+        if: steps.window.outputs.run == 'true'
+        env:
+          PROJECT_DIR: ${{ steps.project.outputs.directory }}
+          QQ_SMTP_AUTH_CODE: ${{ secrets.QQ_SMTP_AUTH_CODE }}
+        run: python "$PROJECT_DIR/macd_email_alert.py" --mode "$ALERT_MODE" --state-dir .alert-state
+
+      # Save successful sends even when a later symbol fails.
+      - name: Persist delivery records
+        if: always() && steps.window.outputs.run == 'true' && env.ALERT_MODE == 'check' && hashFiles('.alert-state/state.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.window.outputs.artifact_name }}
+          path: .alert-state/state.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true

@@ -1,0 +1,16 @@
+{
+  "id": "macd_cross",
+  "key": "macd_cross",
+  "name": "MACD金叉买入/死叉卖出",
+  "description": "MACD金叉买入，死叉卖出，收盘价执行。",
+  "base_key": "macd_cross",
+  "color": "#7c3aed",
+  "builtin": true,
+  "enabled": true,
+  "params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "adx_period": 14
+  }
+}

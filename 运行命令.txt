@@ -1,0 +1,2 @@
+cd E:\001_some_AI_code\量化\quant_backtest
+python -m webapp.backend.app --host 127.0.0.1 --port 8765
